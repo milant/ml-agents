@@ -204,42 +204,11 @@ def test_memory_settings_validation():
         NetworkSettings.MemorySettings(sequence_length=128, memory_size=0)
 
 
-def test_env_parameter_structure():
+@pytest.mark.usefixtures("env_param_settings")
+def test_env_parameter_structure(env_param_settings):
     """
     Tests the EnvironmentParameterSettings structure method and all validators.
     """
-    env_params_dict = {
-        "mass": {
-            "sampler_type": "uniform",
-            "sampler_parameters": {"min_value": 1.0, "max_value": 2.0},
-        },
-        "scale": {
-            "sampler_type": "gaussian",
-            "sampler_parameters": {"mean": 1.0, "st_dev": 2.0},
-        },
-        "length": {
-            "sampler_type": "multirangeuniform",
-            "sampler_parameters": {"intervals": [[1.0, 2.0], [3.0, 4.0]]},
-        },
-        "gravity": 1,
-        "wall_height": {
-            "curriculum": [
-                {
-                    "name": "Lesson1",
-                    "completion_criteria": {
-                        "measure": "reward",
-                        "behavior": "fake_behavior",
-                        "threshold": 10,
-                    },
-                    "value": 1,
-                },
-                {"value": 4, "name": "Lesson2"},
-            ]
-        },
-    }
-    env_param_settings = EnvironmentParameterSettings.structure(
-        env_params_dict, Dict[str, EnvironmentParameterSettings]
-    )
     assert isinstance(env_param_settings["mass"].curriculum[0].value, UniformSettings)
     assert isinstance(env_param_settings["scale"].curriculum[0].value, GaussianSettings)
     assert isinstance(
@@ -345,123 +314,17 @@ def test_env_parameter_structure():
 
 
 @pytest.mark.parametrize("use_defaults", [True, False])
-def test_exportable_settings(use_defaults):
+@pytest.mark.usefixtures("raw_run_options_yaml")
+def test_exportable_settings(use_defaults, raw_run_options_yaml):
     """
     Test that structuring and unstructuring a RunOptions object results in the same
     configuration representation.
     """
     # Try to enable as many features as possible in this test YAML to hit all the
     # edge cases. Set as much as possible as non-default values to ensure no flukes.
-    test_yaml = """
-    behaviors:
-        3DBall:
-            trainer_type: sac
-            hyperparameters:
-                learning_rate: 0.0004
-                learning_rate_schedule: constant
-                batch_size: 64
-                buffer_size: 200000
-                buffer_init_steps: 100
-                tau: 0.006
-                steps_per_update: 10.0
-                save_replay_buffer: true
-                init_entcoef: 0.5
-                reward_signal_steps_per_update: 10.0
-            network_settings:
-                normalize: false
-                hidden_units: 256
-                num_layers: 3
-                vis_encode_type: nature_cnn
-                memory:
-                    memory_size: 1288
-                    sequence_length: 12
-            reward_signals:
-                extrinsic:
-                    gamma: 0.999
-                    strength: 1.0
-                curiosity:
-                    gamma: 0.999
-                    strength: 1.0
-            keep_checkpoints: 5
-            max_steps: 500000
-            time_horizon: 1000
-            summary_freq: 12000
-            checkpoint_interval: 1
-            threaded: true
-    env_settings:
-        env_path: test_env_path
-        env_args:
-            - test_env_args1
-            - test_env_args2
-        base_port: 12345
-        num_envs: 8
-        seed: 12345
-    engine_settings:
-        width: 12345
-        height: 12345
-        quality_level: 12345
-        time_scale: 12345
-        target_frame_rate: 12345
-        capture_frame_rate: 12345
-        no_graphics: true
-    checkpoint_settings:
-        run_id: test_run_id
-        initialize_from: test_directory
-        load_model: false
-        resume: true
-        force: true
-        train_model: false
-        inference: false
-    debug: true
-    environment_parameters:
-        big_wall_height:
-            curriculum:
-              - name: Lesson0
-                completion_criteria:
-                    measure: progress
-                    behavior: BigWallJump
-                    signal_smoothing: true
-                    min_lesson_length: 100
-                    threshold: 0.1
-                value:
-                    sampler_type: uniform
-                    sampler_parameters:
-                        min_value: 0.0
-                        max_value: 4.0
-              - name: Lesson1
-                completion_criteria:
-                    measure: reward
-                    behavior: BigWallJump
-                    signal_smoothing: true
-                    min_lesson_length: 100
-                    threshold: 0.2
-                value:
-                    sampler_type: gaussian
-                    sampler_parameters:
-                        mean: 4.0
-                        st_dev: 7.0
-              - name: Lesson2
-                completion_criteria:
-                    measure: progress
-                    behavior: BigWallJump
-                    signal_smoothing: true
-                    min_lesson_length: 20
-                    threshold: 0.3
-                value:
-                    sampler_type: multirangeuniform
-                    sampler_parameters:
-                        intervals: [[1.0, 2.0],[4.0, 5.0]]
-              - name: Lesson3
-                value: 8.0
-        small_wall_height: 42.0
-        other_wall_height:
-            sampler_type: multirangeuniform
-            sampler_parameters:
-                intervals: [[1.0, 2.0],[4.0, 5.0]]
-    """
     if not use_defaults:
-        loaded_yaml = yaml.safe_load(test_yaml)
-        run_options = RunOptions.from_dict(yaml.safe_load(test_yaml))
+        loaded_yaml = yaml.safe_load(raw_run_options_yaml)
+        run_options = RunOptions.from_dict(yaml.safe_load(raw_run_options_yaml))
     else:
         run_options = RunOptions()
     dict_export = run_options.as_dict()

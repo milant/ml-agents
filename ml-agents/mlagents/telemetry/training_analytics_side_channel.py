@@ -57,7 +57,7 @@ class TrainingAnalyticsSideChannel(SideChannel):
                 if "init_path" in v and v["init_path"] is not None:
                     hashed_path = cls._hash(v["init_path"])
                     res["behaviors"][k]["init_path"] = hashed_path
-                if "demo_path" in config_dict and v["demo_path"] is not None:
+                if "demo_path" in v and v["demo_path"] is not None:
                     hashed_path = cls._hash(v["demo_path"])
                     res["behaviors"][k]["demo_path"] = hashed_path
 
